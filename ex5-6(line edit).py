@@ -27,7 +27,7 @@ class MyApp(QWidget):
 
     def onChanged(self, text):
         self.lbl.setText(text)
-        self.lbl.adjustSize()
+        self.lbl.adjustSize() #test
 
     def onChanged2(self ):
         textsender = self.sender()  ## 이벤트 발생 버튼 정보
