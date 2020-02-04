@@ -211,13 +211,13 @@ class MyApp(QWidget):
         w = img.width
         h = img.height
 
-        cvImage = np.ones((w,h , 3), np.uint8) * 255
+        cvImage = np.ones((2*w,2*h , 3), np.uint8) * 255
         cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB, cvImage)
         img_cv = cv2.imread(path) ## open cv read img file
         resizeImage = cv2.resize(img_cv, dsize=(2*w, 2*h))
-        M = cv2.getRotationMatrix2D((w , h), self.rotate_data, 0.5)
+        M = cv2.getRotationMatrix2D((w , h), 45, 0.5)
         #M = cv2.getRotationMatrix2D((w, h), self.rotate_data, 1)
-        rotated = cv2.warpAffine(img_cv, M, (w, h))
+        rotated = cv2.warpAffine(resizeImage, M, (2*w, 2*h))
         cv2.imwrite(path[0:name_idx] + rotate_file_name,rotated)
 
 
