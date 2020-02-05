@@ -1,14 +1,15 @@
 import sys
-from _curses import is_term_resized
 import cv2
 import numpy as np
+import math
 
-from PyQt5.QtWidgets import QApplication, QWidget, QCheckBox ,QFileDialog , QTextEdit , QPushButton ,QComboBox, QLineEdit
-from PyQt5.QtCore import Qt ,QItemSelection, QModelIndex
+from PyQt5.QtWidgets import QApplication, QWidget, QCheckBox, QFileDialog, QPushButton, QLineEdit, QGridLayout , QLayout
+from PyQt5.QtCore import Qt, QModelIndex
 from PyQt5.QtWidgets import QListView
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtGui import QStandardItem , QIntValidator
 from PIL import Image
+
 
 class MyApp(QWidget):
 
@@ -29,70 +30,75 @@ class MyApp(QWidget):
     def initUI(self):
         # Resize
         cb = QCheckBox('Resize', self)
-        cb.move(20, 20)
         cb.stateChanged.connect(self.ischeckResize)
 
-        self.le_width = QLineEdit(self)
-        self.le_width.setGeometry(120 ,20 , 80 ,20)
+        self.le_width = QLineEdit(self) # resize img width
         self.le_width.setValidator(QIntValidator(0,9999))
 
-        self.le_height = QLineEdit(self)
-        self.le_height.setGeometry(210, 20, 80, 20)
+        self.le_height = QLineEdit(self) # resize img height
         self.le_height.setValidator(QIntValidator(0, 9999))
 
         #Rotate
         cb1 = QCheckBox('Rotate', self)
-        cb1.move(20, 60)
         cb1.stateChanged.connect(self.ischeckRotate)
 
-        combo = QComboBox(self)
-        combo.addItem('90')
-        combo.addItem('180')
-        combo.addItem('270')
-        combo.move(120, 60)
-        combo.activated[str].connect(self.onActivated)
+        self.le_degree = QLineEdit(self)
+        self.le_degree.setValidator(QIntValidator(1, 359))
+        self.le_degree.setText('90')
 
 
         #hflip
         cb2 = QCheckBox('hflip', self)
-        cb2.move(20, 100)
         cb2.stateChanged.connect(self.ischeckHfilp)
 
         #vflip
         cb3 = QCheckBox('vflip', self)
-        cb3.move(20, 140)
         cb3.stateChanged.connect(self.ischeckVfilp)
 
         #set path
         btn_path = QPushButton(self)
-        btn_path.move(20,180)
         btn_path.setText('set file path')
         btn_path.clicked.connect(self.setFilePath)
 
         btn_path_delete = QPushButton(self)
-        btn_path_delete.move(180, 180)
         btn_path_delete.setText('Delete file path')
         btn_path_delete.clicked.connect(self.deleteFilePath)
 
         self.listview = QListView(self)
         self.model = QStandardItemModel()
-        self.listview.setGeometry(20, 220, 360, 100)
-
-
-        '''
-        self.textEdit = QTextEdit(self)
-        self.textEdit.setReadOnly(True)
-        self.textEdit.setGeometry(20,220,260,100)
-        '''
 
         #run
         btn_run = QPushButton(self)
-        btn_run.setGeometry(300, 20, 80 , 80)
         btn_run.setText('Run')
         btn_run.clicked.connect(self.file_change)
+        btn_run.resize(100,100)
 
-        self.setWindowTitle('quiz3')
-        self.setGeometry(300, 300, 400, 500)
+        mainLayout = QGridLayout()
+        mainLayout.setSizeConstraint(QLayout.SetFixedSize)
+
+        #line 1
+        mainLayout.addWidget(cb, 0, 0, 1, 1)
+        mainLayout.addWidget(self.le_width, 0, 1, 1, 1)
+        mainLayout.addWidget(self.le_height, 0, 2, 1, 1)
+        mainLayout.addWidget(btn_run, 0, 3, 1, 1)
+
+        #line 2
+        mainLayout.addWidget(cb1, 1, 0, 1, 1)
+        mainLayout.addWidget(self.le_degree, 1, 1, 1, 1)
+
+        #line 3, 4
+        mainLayout.addWidget(cb2, 2, 0, 1, 1)
+        mainLayout.addWidget(cb3, 3, 0, 1, 1)
+
+        #line 5
+        mainLayout.addWidget(btn_path, 4, 1, 1, 1)
+        mainLayout.addWidget(btn_path_delete, 4, 2, 1, 1)
+
+        mainLayout.addWidget(self.listview, 5, 0, 4, 4)
+
+        self.setLayout(mainLayout)
+        self.setWindowTitle('ImageAug')
+
         self.show()
 
     def ischeckResize(self, state):
@@ -119,9 +125,6 @@ class MyApp(QWidget):
         else:
             self.is_vfilp = False
 
-    def onActivated(self,text):
-        self.rotate_data = int(text)
-
 
     def setFilePath(self):
         #self.textEdit.setText('')
@@ -131,40 +134,33 @@ class MyApp(QWidget):
             self.model.appendRow(QStandardItem(a))
         self.listview.setModel(self.model)
 
-        #self.file_paths = fname[0]
-
-        # for path in self.file_paths:
-        #     print(path)
 
     def deleteFilePath(self):
         delete_item = self.listview.currentIndex().row()
         self.model.removeRow(delete_item)
+
 
     def file_change(self):
         if self.is_rotate :
             for i in range(self.model.rowCount()):
                 path = self.model.index(i, 0, QModelIndex()).data(Qt.DisplayRole)
                 self.setImgRotate(path)
-            # for path in self.file_paths:
-            #     self.setImgRotate(path)
+
         if self.is_resize :
             for i in range(self.model.rowCount()):
                 path = self.model.index(i, 0, QModelIndex()).data(Qt.DisplayRole)
                 self.setImgResize(path)
-            # for path in self.file_paths:
-            #     self.setImgResize(path)
+
         if self.is_vfilp :
             for i in range(self.model.rowCount()):
                 path = self.model.index(i, 0, QModelIndex()).data(Qt.DisplayRole)
                 self.setImgFlip(path,'v')
-            # for path in self.file_paths:
-            #     self.setImgFlip(path,'v')
+
         if self.is_hfilp :
             for i in range(self.model.rowCount()):
                 path = self.model.index(i, 0, QModelIndex()).data(Qt.DisplayRole)
                 self.setImgFlip(path,'h')
-            # for path in self.file_paths:
-            #     self.setImgFlip(path,'h')
+
 
 
     def setImgResize(self , path):
@@ -197,15 +193,16 @@ class MyApp(QWidget):
     def setImgRotate(self , path):
         ## file name
         #print(path)
+        degree = int(self.le_degree.text())
+
         name_idx = self.seach_filename(path)
         #print(path[name_idx : len(path)])
         file_name = path[name_idx : len(path)]
         extension_idx = self.seach_extension(file_name)
 
         rotate_file_name = file_name[0:extension_idx] \
-                           + '_rotate_{}'.format(self.rotate_data) \
+                           + '_rotate_{}'.format(degree) \
                            +file_name[extension_idx : len(file_name)]
-
         ## file rotate
         img = Image.open(path)
         w = img.width
@@ -214,11 +211,14 @@ class MyApp(QWidget):
         cvImage = np.ones((2*w,2*h , 3), np.uint8) * 255
         cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB, cvImage)
         img_cv = cv2.imread(path) ## open cv read img file
-        resizeImage = cv2.resize(img_cv, dsize=(2*w, 2*h))
-        M = cv2.getRotationMatrix2D((w , h), 45, 0.5)
-        #M = cv2.getRotationMatrix2D((w, h), self.rotate_data, 1)
+        # 2배의 이미지에 1/2이미지를 회전한다.
+        resizeImage = cv2.resize(img_cv, dsize=(2*w, 2*h)) # img size X 2
+        M = cv2.getRotationMatrix2D((w, h), degree, 0.5) # 0.5 scale rotate
         rotated = cv2.warpAffine(resizeImage, M, (2*w, 2*h))
-        cv2.imwrite(path[0:name_idx] + rotate_file_name,rotated)
+        # 배경 이미지를 줄이기 위해 좌표 계산후 이미지를 자른다.
+        x_min , x_max , y_min , y_max =self.rotate_xy_min_max(w,h,degree)
+        rotated2 = rotated[y_min: y_max , x_min: x_max] # img cut
+        cv2.imwrite(path[0:name_idx] + rotate_file_name, rotated2)
 
 
     def setImgFlip(self , path,mode):
@@ -267,6 +267,49 @@ class MyApp(QWidget):
             extension_idx = name.find(extension)
             if extension_idx > -1 :
                 return extension_idx
+
+    def rotate_xy_min_max(self,w,h,degrees):
+        th = math.radians(degrees)
+        sin = math.sin(th)
+        cos = math.cos(th)
+
+        x1 = (w / 2 * 3 - w) * cos - (h / 2 - h) * sin + w
+        x2 = (w / 2 - w) * cos - (h / 2 - h) * sin + w
+        x3 = (w / 2 - w) * cos - (h / 2 * 3 - h) * sin + w
+        x4 = (w / 2 * 3 - w) * cos - (h / 2 * 3 - h) * sin + w
+
+        y1 = (w / 2 * 3 - w) * sin + (h / 2 - h) * cos + h
+        y2 = (w / 2 - w) * sin + (h / 2 - h) * cos + h
+        y3 = (w / 2 - w) * sin + (h / 2 * 3- h) * cos + h
+        y4 = (w / 2 * 3 - w) * sin + (h / 2 * 3 - h) * cos + h
+
+        x_min = 99999
+        x_max = 0
+        y_min = 99999
+        y_max = 0
+        x_range = (x1, x2, x3, x4)
+        y_range = (y1, y2, y3, y4)
+
+        for i in range(4):
+            if x_max < x_range[i] :
+                x_max = x_range[i]
+            if x_range[i] < x_min :
+                x_min = x_range[i]
+
+            if y_max < y_range[i] :
+                y_max = y_range[i]
+            if y_range[i] < y_min :
+                y_min = y_range[i]
+        '''
+        print('{} , {} '.format(w,h))
+        print(' {} , {} , {} , {} '.format(x_range[0] , x_range[1], x_range[2],  x_range[3]))
+        print(' {} , {} , {} , {} '.format(y_range[0] , y_range[1], y_range[2], y_range[3]))
+        print(' {} , {} , {} , {} '.format(int(x_min) , int(x_max) , int(y_min) , int(y_max)))
+        print(' {} , {} , {} , {} '.format(x1,x2,x3,x4))
+        print(' {} , {} , {} , {} '.format(y1, y2, y3, y4))
+        '''
+
+        return int(x_min) , int(x_max) , int(y_min) , int(y_max)
 
 
 
